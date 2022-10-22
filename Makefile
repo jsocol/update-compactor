@@ -6,6 +6,10 @@ proto/%.pb.go: proto/*.proto
 proto/%_pb2.py: proto/*.proto
 	protoc --python_out=proto/ $?
 
+.PHONY: test_go
+test_go:
+	go test -v ./...
+
 .PHONY: test_python
 test_python:
 	python -m unittest compactor_test.py
