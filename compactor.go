@@ -7,7 +7,7 @@ import (
 	"go.einride.tech/aip/fieldbehavior"
 	"go.einride.tech/aip/fieldmask"
 	"google.golang.org/genproto/googleapis/api/annotations"
-	gproto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
@@ -17,7 +17,7 @@ func pop(s []string) ([]string, string) {
 	return s[0 : l-1], s[l-1]
 }
 
-func Update(dst, src gproto.Message, fm *fieldmaskpb.FieldMask) error {
+func Update(dst, src proto.Message, fm *fieldmaskpb.FieldMask) error {
 	var err error
 	defer func() {
 		e := recover()
@@ -69,7 +69,7 @@ func SkipUnwritable() option {
 	return option{}
 }
 
-func GRPCPathToJSON(s string, m gproto.Message, opts ...option) (string, error) {
+func GRPCPathToJSON(s string, m proto.Message, opts ...option) (string, error) {
 	skipUnwritable := len(opts) > 0
 	parts := []string{}
 
@@ -107,7 +107,7 @@ func GRPCPathToJSON(s string, m gproto.Message, opts ...option) (string, error) 
 	return strings.Join(parts, "."), nil
 }
 
-func FieldMaskToJSONPaths(fm *fieldmaskpb.FieldMask, m gproto.Message, opts ...option) ([]string, error) {
+func FieldMaskToJSONPaths(fm *fieldmaskpb.FieldMask, m proto.Message, opts ...option) ([]string, error) {
 	paths := []string{}
 	for _, p := range fm.Paths {
 		np, err := GRPCPathToJSON(p, m, opts...)
