@@ -136,3 +136,19 @@ func TestUpdateJSON(t *testing.T) {
 
 	assert.Equal(t, expected, entity)
 }
+
+func TestGRPCPathToJSON_SkipUnwritable(t *testing.T) {
+	u := &proto.UpdatePerson{
+		Id: 423,
+		Person: &proto.Person{
+			Id: 567,
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"id"},
+		},
+	}
+
+	ss, err := compactor.FieldMaskToJSONPaths(u.UpdateMask, u.Person, compactor.SkipUnwritable())
+	assert.Error(t, err)
+	assert.Empty(t, ss)
+}

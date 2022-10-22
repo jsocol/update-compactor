@@ -2,13 +2,14 @@ syntax = "proto3";
 package update.compactor;
 
 import "google/protobuf/field_mask.proto";
+import "google/api/field_behavior.proto";
 
 option go_package = "github.com/jamessocol/update-compactor/proto";
 
 
 message Person {
   string name = 1;
-  int32 id = 2;
+  int32 id = 2 [ (google.api.field_behavior) = OUTPUT_ONLY ];
   Address address = 3;
   repeated string emails = 4;
 }

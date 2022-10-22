@@ -4,7 +4,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"go.einride.tech/aip/fieldbehavior"
 	"go.einride.tech/aip/fieldmask"
+	"google.golang.org/genproto/googleapis/api/annotations"
 	gproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -61,7 +63,14 @@ func UpdateJSON(dst, src map[string]interface{}, paths []string) error {
 	return nil
 }
 
-func GRPCPathToJSON(s string, m gproto.Message) (string, error) {
+type option struct{}
+
+func SkipUnwritable() option {
+	return option{}
+}
+
+func GRPCPathToJSON(s string, m gproto.Message, opts ...option) (string, error) {
+	skipUnwritable := len(opts) > 0
 	parts := []string{}
 
 	md0 := m.ProtoReflect().Descriptor()
@@ -82,6 +91,12 @@ func GRPCPathToJSON(s string, m gproto.Message) (string, error) {
 		if fd == nil {
 			return "", errors.Errorf("message does not have field %s", field)
 		}
+		if skipUnwritable {
+			if fieldbehavior.Has(fd, annotations.FieldBehavior_IMMUTABLE) ||
+				fieldbehavior.Has(fd, annotations.FieldBehavior_OUTPUT_ONLY) {
+				return "", errors.Errorf("field cannot be updated %s", field)
+			}
+		}
 		md = fd.Message()
 		if fd.IsMap() {
 			md = fd.MapValue().Message()
@@ -92,10 +107,10 @@ func GRPCPathToJSON(s string, m gproto.Message) (string, error) {
 	return strings.Join(parts, "."), nil
 }
 
-func FieldMaskToJSONPaths(fm *fieldmaskpb.FieldMask, m gproto.Message) ([]string, error) {
+func FieldMaskToJSONPaths(fm *fieldmaskpb.FieldMask, m gproto.Message, opts ...option) ([]string, error) {
 	paths := []string{}
 	for _, p := range fm.Paths {
-		np, err := GRPCPathToJSON(p, m)
+		np, err := GRPCPathToJSON(p, m, opts...)
 		if err != nil {
 			return nil, err
 		}
