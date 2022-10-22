@@ -5,3 +5,13 @@ proto/%.pb.go: proto/*.proto
 
 proto/%_pb2.py: proto/*.proto
 	protoc --python_out=proto/ $?
+
+.PHONY: test_python
+test_python:
+	python -m unittest compactor_test.py
+
+
+.PHONY: virtualenv
+virtualenv:
+	python -m venv venv
+	venv/bin/pip install -r requirements.txt
