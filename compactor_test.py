@@ -74,3 +74,50 @@ class CompactorTests(unittest.TestCase):
             compactor.update_entity(actual, updates)
 
         self.assertDictEqual(expected, actual)
+
+    def test_partial_initial(self):
+        proto_entity = proto.Person(
+            id=5432,
+            name='Miles',
+        )
+
+        actual = MessageToDict(proto_entity)
+
+        update1 = proto.UpdatePerson(
+            id=5432,
+            person=proto.Person(
+                address=proto.Address(
+                    street1='1234 Fake Blvd',
+                    street2='Apt 78C',
+                ),
+            ),
+            update_mask=field_mask_pb2.FieldMask(
+                paths=['address.street2', 'address.street1'],
+            )
+        )
+
+        update2 = proto.UpdatePerson(
+            id=5432,
+            person=proto.Person(
+                emails=['miles.morales@example.com'],
+            ),
+            update_mask=field_mask_pb2.FieldMask(
+                paths=['emails'],
+            ),
+        )
+
+        expected = {
+            'id': 5432,
+            'name': 'Miles',
+            'address': {
+                'street1': '1234 Fake Blvd',
+                'street2': 'Apt 78C',
+            },
+            'emails': ['miles.morales@example.com'],
+        }
+
+        for update_msg in [update1, update2]:
+            updates = compactor.find_updates_from_msg(update_msg)
+            compactor.update_entity(actual, updates)
+
+        self.assertDictEqual(expected, actual)

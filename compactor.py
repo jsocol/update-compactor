@@ -15,6 +15,8 @@ def update_entity_path(entity, path, value):
     steps = path.split('.')
     leaf = steps.pop()
     for step in steps:
+        if step not in curr:
+            curr[step] = {}
         curr = curr[step]
     curr[leaf] = value
 
