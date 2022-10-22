@@ -1,9 +1,13 @@
 package compactor
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	"go.einride.tech/aip/fieldmask"
 	gproto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
@@ -24,4 +28,83 @@ func Update(dst, src gproto.Message, fm *fieldmaskpb.FieldMask) error {
 	}()
 	fieldmask.Update(fm, dst, src)
 	return err
+}
+
+func UpdateJSON(dst, src map[string]interface{}, paths []string) error {
+	for _, path := range paths {
+		fmt.Printf("starting path %s\n", path)
+		currDst := dst
+		currSrc := src
+
+		steps := strings.Split(path, ".")
+		steps, leaf := pop(steps)
+
+		for _, step := range steps {
+			fmt.Printf("  step %s\n", step)
+			var ok bool
+
+			if _, ok = currDst[step]; !ok {
+				currDst[step] = make(map[string]interface{}, 0)
+			}
+			if currDst, ok = currDst[step].(map[string]interface{}); !ok {
+				return errors.Errorf("unexpected dst leaf at %s of %s", step, path)
+			}
+
+			if _, ok = currSrc[step]; !ok {
+				return errors.Errorf("source is missing %s", path)
+			}
+			if currSrc, ok = currSrc[step].(map[string]interface{}); !ok {
+				return errors.Errorf("unexpected src leaf at %s of %s", step, path)
+			}
+		}
+
+		fmt.Printf("  step (final) %s\n", leaf)
+
+		currDst[leaf] = currSrc[leaf]
+	}
+
+	return nil
+}
+
+func GRPCPathToJSON(s string, m gproto.Message) (string, error) {
+	parts := []string{}
+
+	md0 := m.ProtoReflect().Descriptor()
+	md := md0
+	for _, field := range strings.Split(s, ".") {
+		if md == nil {
+			break
+		}
+		fd := md.Fields().ByName(protoreflect.Name(field))
+		if fd == nil {
+			gd := md.Fields().ByName(protoreflect.Name(strings.ToLower(field)))
+			if gd != nil && gd.Kind() == protoreflect.GroupKind && string(gd.Message().Name()) == field {
+				fd = gd
+			}
+		} else if fd.Kind() == protoreflect.GroupKind && string(fd.Message().Name()) != field {
+			fd = nil
+		}
+		if fd == nil {
+			return "", errors.Errorf("message does not have field %s", field)
+		}
+		md = fd.Message()
+		if fd.IsMap() {
+			md = fd.MapValue().Message()
+		}
+		parts = append(parts, fd.JSONName())
+	}
+
+	return strings.Join(parts, "."), nil
+}
+
+func FieldMaskToJSONPaths(fm *fieldmaskpb.FieldMask, m gproto.Message) ([]string, error) {
+	paths := []string{}
+	for _, p := range fm.Paths {
+		np, err := GRPCPathToJSON(p, m)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, np)
+	}
+	return paths, nil
 }
