@@ -23,6 +23,7 @@ func TestCompactor(t *testing.T) {
 	fmt.Printf("before: %s\n", string(j))
 
 	update1 := &proto.UpdatePerson{
+		Id: 423,
 		Person: &proto.Person{
 			Address: &proto.Address{
 				Street1: "543 New St",
@@ -34,7 +35,25 @@ func TestCompactor(t *testing.T) {
 		},
 	}
 
-	compactor.Update(entity, update1.Person, update1.UpdateMask)
+	update2 := &proto.UpdatePerson{
+		Id: 423,
+		Person: &proto.Person{
+			Address: &proto.Address{
+				City:      "New York",
+				StateCode: "NY",
+			},
+			Emails: []string{"spider-man@example.com"},
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"address.city", "address.state_code", "emails"},
+		},
+	}
+
+	updates := []*proto.UpdatePerson{update1, update2}
+
+	for _, u := range updates {
+		compactor.Update(entity, u.Person, u.UpdateMask)
+	}
 
 	j, err = protojson.Marshal(entity)
 	assert.NoError(t, err)
@@ -44,8 +63,11 @@ func TestCompactor(t *testing.T) {
 		Id:   int32(423),
 		Name: "Miles Morales",
 		Address: &proto.Address{
-			Street1: "543 New St",
+			Street1:   "543 New St",
+			City:      "New York",
+			StateCode: "NY",
 		},
+		Emails: []string{"spider-man@example.com"},
 	}
 	ej, err := protojson.Marshal(expected)
 	assert.NoError(t, err)
