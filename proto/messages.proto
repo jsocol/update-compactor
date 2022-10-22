@@ -1,0 +1,28 @@
+syntax = "proto3";
+package update.compactor;
+
+import "google/protobuf/field_mask.proto";
+
+option go_package = "github.com/jamessocol/update-compactor/proto";
+
+
+message Person {
+  string name = 1;
+  int32 id = 2;
+  Address address = 3;
+  repeated string emails = 4;
+}
+
+message Address {
+  string street1 = 1;
+  string street2 = 2;
+  string city = 3;
+  string postal_code = 4;
+  string state_code = 5;
+}
+
+message UpdatePerson {
+  int32 id = 1;
+  Person person = 2;
+  google.protobuf.FieldMask update_mask = 3;
+}
