@@ -1,7 +1,6 @@
 package compactor
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -32,7 +31,6 @@ func Update(dst, src gproto.Message, fm *fieldmaskpb.FieldMask) error {
 
 func UpdateJSON(dst, src map[string]interface{}, paths []string) error {
 	for _, path := range paths {
-		fmt.Printf("starting path %s\n", path)
 		currDst := dst
 		currSrc := src
 
@@ -40,7 +38,6 @@ func UpdateJSON(dst, src map[string]interface{}, paths []string) error {
 		steps, leaf := pop(steps)
 
 		for _, step := range steps {
-			fmt.Printf("  step %s\n", step)
 			var ok bool
 
 			if _, ok = currDst[step]; !ok {
@@ -57,8 +54,6 @@ func UpdateJSON(dst, src map[string]interface{}, paths []string) error {
 				return errors.Errorf("unexpected src leaf at %s of %s", step, path)
 			}
 		}
-
-		fmt.Printf("  step (final) %s\n", leaf)
 
 		currDst[leaf] = currSrc[leaf]
 	}
